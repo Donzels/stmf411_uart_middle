@@ -1,0 +1,27 @@
+{
+    "files.associations": {
+        "uart_proto.h": "c",
+        "main.h": "c",
+        "stdbool.h": "c",
+        "string.h": "c",
+        "t_list.h": "c",
+        "usart.h": "c",
+        "cstdlib": "c",
+        "segger_rtt.h": "c",
+        "segger_sysview.h": "c",
+        "segger_sysview_freertos.h": "c",
+        "stdio.h": "c",
+        "compare": "c",
+        "uart_send.h": "c",
+        "osal_internal_task.h": "c",
+        "osal_internal_globaldefs.h": "c",
+        "osal_internal_critical.h": "c",
+        "osal_critical.h": "c",
+        "common_types.h": "c",
+        "crtdefs.h": "c",
+        "osal_internal_sema.h": "c",
+        "osal_internal_heap.h": "c",
+        "debug.h": "c",
+        "osal_sema.h": "c"
+    }
+}
