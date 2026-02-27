@@ -2,34 +2,33 @@
 
 ## 1. Overview
 
-The UART Protocol Layer is a configurable asynchronous serial protocol processing framework supporting three operation modes:
-- **Function Code Mode**: Frame parsing and callback dispatching based on function codes
+The UART protocol layer is a configurable asynchronous serial protocol processing framework that supports three operating modes:
+- **Function Code Mode**: Frame parsing and callback dispatch based on function codes
 - **Transparent Mode**: Raw data transparent transmission
 - **Dual Strategy Mode**: Runtime dynamic switching between the above two modes
 
 ## 2. Overall Architecture
 
 ```
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦                    UART Protocol Instance                        ©¦
-©¦                      (uart_proto_t)                             ©¦
-©À©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©È
-©¦                                                                 ©¦
-©¦  ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´  ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´  ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´    ©¦
-©¦  ©¦ Input Args   ©¦  ©¦ Private Data ©¦  ©¦  Public APIs       ©¦    ©¦
-©¦  ©¦  input_arg   ©¦  ©¦  priv_data   ©¦  ©¦pf_subscribe()     ©¦    ©¦
-©¦  ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼  ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼  ©¦pf_unsubscribe()   ©¦    ©¦
-©¦                                      ©¦pf_strategy_algo() ©¦    ©¦
-©¦                                      ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼    ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-                              ©¦
-                ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©à©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-                ©¦             ©¦             ©¦
-                ¨‹             ¨‹             ¨‹
-        ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´   ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´   ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-        ©¦    OS    ©¦   ©¦   UART   ©¦   ©¦  Parser  ©¦
-        ©¦Interface ©¦   ©¦Interface ©¦   ©¦ Algorithm©¦
-        ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼   ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼   ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                    UART Protocol Layer Instance                  â”‚
+â”‚                      (uart_proto_t)                             â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚                                                                 â”‚
+â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”    â”‚
+â”‚  â”‚ Input Args   â”‚  â”‚ Private Data â”‚  â”‚  Public API       â”‚    â”‚
+â”‚  â”‚  input_arg   â”‚  â”‚  priv_data   â”‚  â”‚pf_subscribe()     â”‚    â”‚
+â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â”‚pf_unsubscribe()   â”‚    â”‚
+â”‚                                      â”‚pf_strategy_algo() â”‚    â”‚
+â”‚                                      â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜    â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                              â”‚
+                â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                â”‚             â”‚             â”‚
+                â–¼             â–¼             â–¼
+        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+        â”‚OS Interfaceâ”‚  â”‚UART Ops  â”‚   â”‚Parse Algoâ”‚
+        â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ## 3. Core Components
@@ -38,79 +37,79 @@ The UART Protocol Layer is a configurable asynchronous serial protocol processin
 
 ```
 uart_proto_input_arg_t
-©À©¤©¤ frame_parse_att         // Frame parsing attributes
-©¦   ©À©¤©¤ recv_buf_att        // Receive buffer configuration
-©¦   ©¦   ©À©¤©¤ recv_buf        // Buffer pointer
-©¦   ©¦   ©¸©¤©¤ buffer_size     // Buffer size
-©¦   ©¸©¤©¤ parse_algo          // Parsing algorithm
-©¦       ©À©¤©¤ algo_type       // Algorithm type (dual mode)
-©¦       ©¸©¤©¤ u               // Algorithm union
-©¦           ©À©¤©¤ funcoude_algo     // Function code algorithm
-©¦           ©¸©¤©¤ transparent_algo  // Transparent algorithm
-©À©¤©¤ uart_ops                // Hardware operation interface
-©¦   ©À©¤©¤ pf_uart_init()
-©¦   ©À©¤©¤ pf_get_counter()
-©¦   ©¸©¤©¤ pf_set_counter()
-©À©¤©¤ os_interface            // Operating system interface
-©¦   ©À©¤©¤ pf_os_thread_create()
-©¦   ©À©¤©¤ pf_os_queue_create()
-©¦   ©À©¤©¤ pf_os_enter_critical()
-©¦   ©¸©¤©¤ pf_os_exit_critical()
-©À©¤©¤ thread_att              // Thread attributes (optional)
-©¸©¤©¤ uart_proto_config       // Protocol configuration (optional)
+â”œâ”€â”€ frame_parse_att         // Frame parsing attributes
+â”‚   â”œâ”€â”€ recv_buf_att        // Receive buffer configuration
+â”‚   â”‚   â”œâ”€â”€ recv_buf        // Buffer pointer
+â”‚   â”‚   â””â”€â”€ buffer_size     // Buffer size
+â”‚   â””â”€â”€ parse_algo          // Parsing algorithm
+â”‚       â”œâ”€â”€ algo_type       // Algorithm type (dual mode)
+â”‚       â””â”€â”€ u               // Algorithm union
+â”‚           â”œâ”€â”€ funcoude_algo     // Function code algorithm
+â”‚           â””â”€â”€ transparent_algo  // Transparent algorithm
+â”œâ”€â”€ uart_ops                // Hardware operation interface
+â”‚   â”œâ”€â”€ pf_uart_init()
+â”‚   â”œâ”€â”€ pf_get_counter()
+â”‚   â””â”€â”€ pf_set_counter()
+â”œâ”€â”€ os_interface            // Operating system interface
+â”‚   â”œâ”€â”€ pf_os_thread_create()
+â”‚   â”œâ”€â”€ pf_os_queue_create()
+â”‚   â”œâ”€â”€ pf_os_enter_critical()
+â”‚   â””â”€â”€ pf_os_exit_critical()
+â”œâ”€â”€ thread_att              // Thread attributes (optional)
+â””â”€â”€ uart_proto_config       // Protocol configuration (optional)
 ```
 
 ### 3.2 Private Data (uart_proto_priv_data_t)
 
 ```
 uart_proto_priv_data_t
-©À©¤©¤ is_inited                    // Initialization flag
-©À©¤©¤ num_notify_isr_cb_call       // ISR notification count
-©À©¤©¤ parse_fail_cnt               // Parse failure counter
-©À©¤©¤ queue_handle                 // Queue handle
-©À©¤©¤ data_counter                 // Data counter
-©À©¤©¤ header                       // Header index
-©À©¤©¤ tail                         // Tail index
-©À©¤©¤ parse_buf                    // Parse buffer
-©¸©¤©¤ funcode_sentinel             // Function code list sentinel (function code mode)
+â”œâ”€â”€ is_inited                    // Initialization flag
+â”œâ”€â”€ num_notify_isr_cb_call       // ISR notification count
+â”œâ”€â”€ parse_fail_cnt               // Parse failure count
+â”œâ”€â”€ queue_handle                 // Queue handle
+â”œâ”€â”€ data_counter                 // Data counter
+â”œâ”€â”€ header                       // Header index
+â”œâ”€â”€ tail                         // Tail index
+â”œâ”€â”€ parse_buf                    // Parse buffer
+â””â”€â”€ funcode_sentinel             // Function code linked list sentinel (function code mode)
 ```
 
-## 4. Operation Modes
+## 4. Operating Modes
 
 ### 4.1 Function Code Mode (UART_PROTO_MODE_FUNCTION_CODE)
 
 ```
-Receive Data ¡ú Frame Parsing ¡ú Extract Function Code ¡ú Find Subscribers ¡ú Callback Notification
+Receive Data â†’ Frame Parsing â†’ Extract Function Code â†’ Find Subscribers â†’ Callback Notification
 ```
 
 **Features**:
-- Support multiple subscribers for different function codes
-- Use sorted linked list to manage subscriptions
-- Automatic multi-frame parsing until buffer exhausted
+- Supports multiple subscribers for different function codes
+- Uses ordered linked list to manage subscription relationships
+- Automatic multi-frame parsing until buffer is exhausted
 
 **Subscription Mechanism**:
 ```
-Subscriber A (Function Code 0x01)  ©¤©¤©¤©´
-Subscriber B (Function Code 0x03)  ©¤©¤©¤©à©¤©¤¡ú Sorted Linked List
-Subscriber C (Function Code 0x05)  ©¤©¤©¤©¼
+Subscriber A (Function Code 0x01)  â”€â”€â”€â”
+Subscriber B (Function Code 0x03)  â”€â”€â”€â”¼â”€â”€â†’ Ordered Linked List
+Subscriber C (Function Code 0x05)  â”€â”€â”€â”˜
 ```
 
 ### 4.2 Transparent Mode (UART_PROTO_MODE_TRANSPARENT)
 
 ```
-Receive Data ¡ú Directly Enqueue ¡ú Transparent Callback
+Receive Data â†’ Direct Enqueue â†’ Transparent Callback
 ```
 
 **Features**:
 - No frame structure parsing
-- Raw data directly forwarded
+- Raw data passed directly
 - Suitable for custom protocols or streaming data
 
 ### 4.3 Dual Strategy Mode (UART_PROTO_MODE_DUAL_STRATEGY)
 
 ```
-Receive Data ¡ú Check Current Algorithm Type ¡ú Function Code Parse / Transparent Handle
-                            ¡ü
+Receive Data â†’ Check Current Algorithm Type â†’ Function Code Parsing / Transparent Processing
+                            â†‘
                    Runtime Switchable
 ```
 
@@ -124,93 +123,92 @@ Receive Data ¡ú Check Current Algorithm Type ¡ú Function Code Parse / Transparen
 ### 5.1 Receive Flow
 
 ```
-              ¨X¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨[
-              ¨U UART DMA IRQ  ¨U
-              ¨^¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨a
-                      ©¦
-                      ¨‹
-         ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-         ©¦   notify_isr_cb()      ©¦ ?©¤©¤©¤ Called from ISR context
-         ©¦  1. Calculate ring     ©¦
-         ©¦     buffer range       ©¦
-         ©¦  2. Handle wrap cases  ©¦
-         ©¦  3. Call parse function©¦
-         ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-                      ©¦
-         ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©Ø©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-         ©¦                         ©¦
-         ¨‹                         ¨‹
-  ©³©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©·        ©³©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©·
-  ©§Function Code©§        ©§ Transparent ©§
-  ©§   Parsing   ©§        ©§   Parsing   ©§
-  ©»©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¿        ©»©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¿
-         ©¦                         ©¦
-         ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©Ğ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-                      ¨‹
-              ¨X¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨[
-              ¨U Message Queue ¨U
-              ¨^¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨a
-                      ©¦
-                      ¨‹
-         ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-         ©¦   parse_thread()       ©¦ ?©¤©¤©¤ Background thread
-         ©¦  1. Get data from queue©¦
-         ©¦  2. Call subscriber    ©¦
-         ©¦     callbacks          ©¦
-         ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-                      ©¦
-                      ¨‹
-              ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-              ©¦User Callbacks©¦
-              ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+              â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+              â•‘ UART DMA IRQ  â•‘
+              â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+                      â”‚
+                      â–¼
+         â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+         â”‚   notify_isr_cb()      â”‚ â†â”€â”€â”€ Called from ISR context
+         â”‚  1. Calculate ring buffer range   â”‚
+         â”‚  2. Handle wraparound situations  â”‚
+         â”‚  3. Call parsing function         â”‚
+         â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                      â”‚
+         â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+         â”‚                         â”‚
+         â–¼                         â–¼
+  â”â”â”â”â”â”â”â”â”â”â”â”â”â”“          â”â”â”â”â”â”â”â”â”â”â”â”â”â”“
+  â”ƒFunction Codeâ”ƒ          â”ƒ Transparentâ”ƒ
+  â”ƒ   Parsing   â”ƒ          â”ƒ  Parsing   â”ƒ
+  â”—â”â”â”â”â”â”â”â”â”â”â”â”â”›          â”—â”â”â”â”â”â”â”â”â”â”â”â”â”›
+         â”‚                         â”‚
+         â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                      â–¼
+              â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+              â•‘ Message Queue â•‘
+              â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+                      â”‚
+                      â–¼
+         â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+         â”‚   parse_thread()       â”‚ â†â”€â”€â”€ Background thread
+         â”‚  1. Retrieve data from queue  â”‚
+         â”‚  2. Call subscriber callbacks â”‚
+         â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                      â”‚
+                      â–¼
+              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+              â”‚ User Callbackâ”‚
+              â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ### 5.2 Ring Buffer Management
 
 ```
 DMA Receive Buffer (Ring):
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦  #########-------########             ©¦
-©¦  ¡ü        ¡ü       ¡ü                   ©¦
-©¦  Used     tail    DMA write pos       ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚  #########-------########             â”‚
+â”‚  â†‘        â†‘       â†‘                   â”‚
+â”‚  Used     tail    DMA write position  â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
   
-  header: Total received bytes (accumulated)
-  tail:   Processed bytes (accumulated)
-  data_counter: Last DMA stop position
+  header: Total received bytes (cumulative)
+  tail:   Processed bytes (cumulative)
+  data_counter: DMA last stop position
 ```
 
-**Wrap Handling**:
+**Wraparound Handling**:
 - If data crosses buffer boundary, copy to `parse_buf`
-- If data in contiguous region, process directly (`NON_COPY_WHEN_NON_WRAP`)
+- If data is in contiguous region, process directly (`NON_COPY_WHEN_NON_WRAP`)
 
 ## 6. Thread Model
 
 ```
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦  Parse Thread   ©¦  Priority: PARSE_THREAD_PRIORITY (16)
-©¦ parse_thread()  ©¦  Stack: PARSE_THREAD_STACK_DEPTH (0x200)
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-        ©¦
-        ©¦ Block on message queue
-        ¨‹
-    ©°©¤©¤©¤©¤©¤©¤©¤©¤©´
-    ©¦  Wait  ©¦
-    ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¼
-        ©¦
-        ©¦ Receive parse info
-        ¨‹
-    ©°©¤©¤©¤©¤©¤©¤©¤©¤©´
-    ©¦Dispatch©¦
-    ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚  Parse Thread   â”‚  Priority: PARSE_THREAD_PRIORITY (16)
+â”‚ parse_thread()  â”‚  Stack Depth: PARSE_THREAD_STACK_DEPTH (0x200)
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+        â”‚
+        â”‚ Blocked on message queue
+        â–¼
+    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”
+    â”‚Queue Waitâ”‚
+    â””â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+        â”‚
+        â”‚ Receive parse info
+        â–¼
+    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”
+    â”‚Dispatchâ”‚
+    â”‚Callbackâ”‚
+    â””â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 **Thread Safety**:
 - ISR and thread decoupled via message queue
-- Critical section protects shared variables (header, tail, counter)
-- Subscription list operations use critical sections
+- Critical section protection for shared variables (header, tail, counter)
+- Subscription linked list operations use critical sections
 
-## 7. API Interfaces
+## 7. API Interface
 
 ### 7.1 Initialization Interface
 
@@ -228,7 +226,7 @@ uart_proto_status_t uart_proto_inst(
 3. Initialize UART hardware
 4. Create message queue
 5. Create parse thread
-6. Initialize subscription list (function code mode)
+6. Initialize subscription linked list (function code mode)
 
 ### 7.2 ISR Callback Interface
 
@@ -237,7 +235,7 @@ void notify_isr_cb(uart_proto_t *const self);
 ```
 
 **Function**: DMA receive complete interrupt callback
-**Call Timing**:
+**Invocation Timing**:
 - UART idle interrupt
 - DMA half-full/full interrupt
 - Periodic timer interrupt
@@ -257,7 +255,7 @@ uart_proto_status_t pf_unsubscribe(
 );
 ```
 
-### 7.4 Algorithm Switch Interface (Dual Strategy Mode)
+### 7.4 Algorithm Switching Interface (Dual Strategy Mode)
 
 ```c
 uart_proto_status_t pf_strategy_algo(
@@ -271,12 +269,12 @@ uart_proto_status_t pf_strategy_algo(
 ### 8.1 Parse Error Types
 
 | Error Type | Handling Strategy |
-|-----------|------------------|
+|-----------|-------------------|
 | `ALGO_ING` | Parsing incomplete, wait for more data |
 | `ALGO_ERR_LENGTH_INVALID` | Invalid length, skip current data |
 | `ALGO_ERR_CRC` | CRC check failed, skip current frame |
 | `ALGO_ERR_NOICE` | Noise data, continue parsing |
-| `ALGO_ERR_OTHERS` | Serious error, discard all data |
+| `ALGO_ERR_OTHERS` | Severe error, discard all data |
 
 ### 8.2 State Reset
 
@@ -294,12 +292,12 @@ void reset_rx_state(uart_proto_t *const self);
 ### 9.1 Compile-Time Configuration
 
 ```c
-// Mode selection
+// Operating mode selection
 #define UART_PROTO_MODE_DEFAULT  UART_PROTO_MODE_FUNCTION_CODE
 
 // Performance parameters
 #define NUM_NOTIFY_ISR_CB_CALL          3   // ISR callback retry count
-#define MAX_PARSE_NUM_ONCE_TRIGGER      10  // Max frames per trigger
+#define MAX_PARSE_NUM_ONCE_TRIGGER      10  // Max frames parsed per trigger
 
 // Thread configuration
 #define PARSE_THREAD_PRIORITY           16
@@ -326,7 +324,7 @@ typedef struct {
 
 **Configuration**: Function Code Mode
 ```c
-// Subscribe to Read Holding Registers (0x03)
+// Subscribe to read holding registers (0x03)
 subscribe_para_t para = {
     .fun_code = 0x03,
     .cb = modbus_read_holding_register_cb,
@@ -346,7 +344,7 @@ transparent_algo_t algo = {
 };
 ```
 
-### 10.3 Multi-Protocol Compatible
+### 10.3 Multi-Protocol Compatibility
 
 **Configuration**: Dual Strategy Mode
 ```c
@@ -366,28 +364,28 @@ if (detect_protocol_type() == MODBUS) {
 #define NON_COPY_WHEN_NON_WRAP
 ```
 - Non-wrapped data parsed directly in DMA buffer
-- Reduce memory copy overhead
+- Reduces memory copy overhead
 
 ### 11.2 Batch Parsing
 
 - Single interrupt can parse multiple complete frames
-- Limited by `MAX_PARSE_NUM_ONCE_TRIGGER`
-- Prevent excessive interrupt processing time
+- Limited by `MAX_PARSE_NUM_ONCE_TRIGGER` to prevent excessive processing
+- Prevents interrupt processing time from being too long
 
-### 11.3 Sorted List
+### 11.3 Ordered Linked List
 
 - Subscription list sorted by function code
-- Speed up search
-- Support binary search optimization (extensible)
+- Speeds up lookup
+- Supports binary search optimization (extensible)
 
 ## 12. Dependencies
 
 ```
 uart_proto.c/h
-    ©À©¤©¤ t_list.h              (Function code mode)
-    ©À©¤©¤ os_interface          (Thread, queue, critical section)
-    ©À©¤©¤ uart_ops              (HW init, counter read/write)
-    ©¸©¤©¤ parse_algo            (Frame parsing algorithm)
+    â”œâ”€â”€ t_list.h              (Function code mode)
+    â”œâ”€â”€ os_interface          (Thread, queue, critical section)
+    â”œâ”€â”€ uart_ops              (Hardware init, counter read/write)
+    â””â”€â”€ parse_algo            (Frame parsing algorithm)
 ```
 
 ## 13. Porting Guide
@@ -396,7 +394,7 @@ uart_proto.c/h
 
 1. **OS Interface**:
    - Thread create/delete
-   - Queue create/put/get
+   - Queue create/send/receive
    - Critical section enter/exit
 
 2. **UART Interface**:
@@ -404,7 +402,7 @@ uart_proto.c/h
    - DMA counter read/write
 
 3. **Parsing Algorithm**:
-   - Function code parse function
+   - Function code parsing function
    - Or transparent callback function
 
 ### 13.2 Porting Steps

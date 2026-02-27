@@ -2,37 +2,36 @@
 
 ## 1. Overview
 
-The UART Send Layer is a high-reliability serial transmission management framework providing both synchronous and asynchronous send modes, supporting multiple resource synchronization strategies, and featuring comprehensive error recovery mechanisms.
+The UART send layer is a high-reliability serial transmission management framework that provides both synchronous and asynchronous send modes, supports multiple resource synchronization strategies, and has a comprehensive error recovery mechanism.
 
 **Core Features**:
-- **Synchronous Send**: Blocking transmission with completion callback support
-- **Asynchronous Send**: Non-blocking transmission with data buffering
-- **Resource Synchronization**: Support for both semaphore and mutex modes
+- **Synchronous Send**: Blocking send with completion callback support
+- **Asynchronous Send**: Non-blocking send, data buffered and returns immediately
+- **Resource Synchronization**: Supports both semaphore and mutex modes
 - **Timeout Protection**: Configurable timeout mechanism to prevent deadlock
-- **Priority Inversion**: Mutex mode solves priority inversion issues
+- **Priority Inversion**: Mutex mode resolves priority inversion issues
 
 ## 2. Overall Architecture
 
 ```
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦                    UART Send Layer Instance                      ©¦
-©¦                   (uart_tx_handler_t)                           ©¦
-©À©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©È
-©¦                                                                 ©¦
-©¦  ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´  ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´  ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´    ©¦
-©¦  ©¦ Input Args   ©¦  ©¦ Private Data ©¦  ©¦  Public APIs       ©¦    ©¦
-©¦  ©¦  input_arg   ©¦  ©¦  priv_data   ©¦  ©¦pf_send_syn()      ©¦    ©¦
-©¦  ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼  ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼  ©¦pf_send_asy()      ©¦    ©¦
-©¦                                      ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼    ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-                              ©¦
-                ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©à©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-                ©¦             ©¦             ©¦
-                ¨‹             ¨‹             ¨‹
-        ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´   ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´   ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-        ©¦    OS    ©¦   ©¦   UART   ©¦   ©¦   Send   ©¦
-        ©¦Interface ©¦   ©¦Interface ©¦   ©¦  Buffer  ©¦
-        ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼   ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼   ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                     UART Send Layer Instance                     â”‚
+â”‚                   (uart_tx_handler_t)                           â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚                                                                 â”‚
+â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”    â”‚
+â”‚  â”‚ Input Args   â”‚  â”‚ Private Data â”‚  â”‚  Public API       â”‚    â”‚
+â”‚  â”‚  input_arg   â”‚  â”‚  priv_data   â”‚  â”‚pf_send_syn()      â”‚    â”‚
+â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â”‚pf_send_asy()      â”‚    â”‚
+â”‚                                      â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜    â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                              â”‚
+                â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                â”‚             â”‚             â”‚
+                â–¼             â–¼             â–¼
+        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+        â”‚OS Interfaceâ”‚  â”‚UART Ops  â”‚   â”‚Send Bufferâ”‚
+        â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ## 3. Core Components
@@ -41,84 +40,84 @@ The UART Send Layer is a high-reliability serial transmission management framewo
 
 ```
 uart_tx_input_arg_t
-©À©¤©¤ send_buf_att            // Send buffer configuration
-©¦   ©À©¤©¤ send_buf            // Buffer pointer
-©¦   ©¸©¤©¤ buffer_size         // Buffer size
-©À©¤©¤ tx_uart_ops             // Hardware operations interface
-©¦   ©À©¤©¤ pf_uart_init()
-©¦   ©À©¤©¤ pf_uart_deinit()
-©¦   ©¸©¤©¤ pf_uart_write_dma()
-©À©¤©¤ os_interface            // Operating system interface
-©¦   ©À©¤©¤ pf_os_thread_create()
-©¦   ©À©¤©¤ pf_os_sema_create()
-©¦   ©À©¤©¤ pf_os_mutex_create()  (Mutex mode)
-©¦   ©À©¤©¤ pf_os_queue_create()
-©¦   ©À©¤©¤ pf_os_enter_critical()
-©¦   ©À©¤©¤ pf_os_exit_critical()
-©¦   ©¸©¤©¤ pf_timer_create()     (Timeout mode)
-©À©¤©¤ thread_att              // Thread attributes (optional)
-©¦   ©À©¤©¤ tx_asy_thread_att   // Async send thread
-©¦   ©¸©¤©¤ tx_cpl_thread_att   // Completion callback thread
-©¸©¤©¤ uart_tx_cfg             // TX configuration (optional)
+â”œâ”€â”€ send_buf_att            // Send buffer configuration
+â”‚   â”œâ”€â”€ send_buf            // Buffer pointer
+â”‚   â””â”€â”€ buffer_size         // Buffer size
+â”œâ”€â”€ tx_uart_ops             // Hardware operation interface
+â”‚   â”œâ”€â”€ pf_uart_init()
+â”‚   â”œâ”€â”€ pf_uart_deinit()
+â”‚   â””â”€â”€ pf_uart_write_dma()
+â”œâ”€â”€ os_interface            // Operating system interface
+â”‚   â”œâ”€â”€ pf_os_thread_create()
+â”‚   â”œâ”€â”€ pf_os_sema_create()
+â”‚   â”œâ”€â”€ pf_os_mutex_create()  (Mutex mode)
+â”‚   â”œâ”€â”€ pf_os_queue_create()
+â”‚   â”œâ”€â”€ pf_os_enter_critical()
+â”‚   â”œâ”€â”€ pf_os_exit_critical()
+â”‚   â””â”€â”€ pf_timer_create()     (Timeout mode)
+â”œâ”€â”€ thread_att              // Thread attributes (optional)
+â”‚   â”œâ”€â”€ tx_asy_thread_att   // Async send thread
+â”‚   â””â”€â”€ tx_cpl_thread_att   // Completion callback thread
+â””â”€â”€ uart_tx_cfg             // Send configuration (optional)
 ```
 
 ### 3.2 Private Data (uart_tx_priv_data_t)
 
 ```
 uart_tx_priv_data_t
-©À©¤©¤ is_inited                       // Initialization flag
-©À©¤©¤ tx_resource_sema_handle         // TX resource semaphore (semaphore mode)
-©À©¤©¤ tx_resource_mutex_handle        // TX resource mutex (mutex mode)
-©À©¤©¤ tx_resource_syn_sema_handle     // Sync semaphore (mutex mode)
-©À©¤©¤ tx_cpl_ctx_queue_handle         // Completion callback queue
-©À©¤©¤ asy_tx_sema                     // Async send semaphore
-©À©¤©¤ thread_cpl_ctx_queue_handle     // Thread callback queue
-©À©¤©¤ write_offset                    // Write offset
-©À©¤©¤ timer                           // Timeout timer (optional)
-©¸©¤©¤ is_sending                      // Sending flag
+â”œâ”€â”€ is_inited                       // Initialization flag
+â”œâ”€â”€ tx_resource_sema_handle         // TX resource semaphore (semaphore mode)
+â”œâ”€â”€ tx_resource_mutex_handle        // TX resource mutex (mutex mode)
+â”œâ”€â”€ tx_resource_syn_sema_handle     // Sync semaphore (mutex mode)
+â”œâ”€â”€ tx_cpl_ctx_queue_handle         // Completion callback queue
+â”œâ”€â”€ asy_tx_sema                     // Async send semaphore
+â”œâ”€â”€ thread_cpl_ctx_queue_handle     // Thread callback queue
+â”œâ”€â”€ write_offset                    // Write offset
+â”œâ”€â”€ timer                           // Timeout timer (optional)
+â””â”€â”€ is_sending                      // Sending flag
 ```
 
-## 4. Operation Modes
+## 4. Operating Modes
 
 ### 4.1 Synchronous Send Mode
 
 ```
-Call pf_send_syn() ¡ú Acquire TX Resource ¡ú Start DMA ¡ú Wait Complete ¡ú Release Resource ¡ú Return
-                                              ¡ý
-                                       DMA Complete IRQ
-                                              ¡ý
-                                       tx_cpl_isr_cb()
-                                              ¡ý
-                                  ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©Ø©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-                                  ¨‹                       ¨‹
-                             ISR Callback            Thread Callback
-                           (Interrupt Context)      (Enqueued to Thread)
+Call pf_send_syn() â†’ Acquire TX Resource â†’ Start DMA Transfer â†’ Wait Complete â†’ Release Resource â†’ Return
+                                        â†“
+                                  DMA Complete IRQ
+                                        â†“
+                                   tx_cpl_isr_cb()
+                                        â†“
+                              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                              â–¼                   â–¼
+                         ISR Callback         Thread Callback
+                        (IRQ Context)         (Enqueued to thread)
 ```
 
 **Features**:
-- Blocking call until transmission completes
-- Support completion callback (ISR or thread context)
+- Blocking call until send completes
+- Supports completion callback (ISR context or thread context)
 - Suitable for scenarios requiring send confirmation
 
 **Data Stability Requirements**:
-- **Semaphore Mode**: Data must remain stable until transmission completes, cannot modify in callback
-- **Mutex Mode**: No requirement (calling thread blocks until completion)
+- **Semaphore Mode**: Data must remain stable until send completes, cannot be modified in callback
+- **Mutex Mode**: No requirement, calling thread blocks until send completes
 
 ### 4.2 Asynchronous Send Mode
 
 ```
-Call pf_send_asy() ¡ú Copy Data to Buffer ¡ú Return Immediately
-                            ¡ý
-                  ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©Ø©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-                  ¨‹                   ¨‹
+Call pf_send_asy() â†’ Copy Data to Buffer â†’ Return Immediately
+                            â†“
+                  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                  â–¼                   â–¼
             THREAD_ONLY         DIRECT_FIRST
-         Always via thread      Try direct first
-                  ©¦                   ©¦
-                  ¨‹                   ¨‹
-          asy_send_thread()    Resource Free?©¤©¤Yes¡ú Direct DMA Send
-                                      ©¦
+            Always send via thread    Direct send preferred
+                  â”‚                   â”‚
+                  â–¼                   â–¼
+          asy_send_thread()     Resource Free?â”€â”€Yesâ†’ Direct DMA Send
+                                      â”‚
                                      No
-                                      ¨‹
+                                      â–¼
                               Send via thread
 ```
 
@@ -126,56 +125,56 @@ Call pf_send_asy() ¡ú Copy Data to Buffer ¡ú Return Immediately
 
 #### Mode 1: UART_ASYNC_SEND_MODE_THREAD_ONLY
 - Data always copied to buffer first
-- Handled by async send thread uniformly
-- **Advantage**: No data stability requirement, can modify after call
-- **Disadvantage**: Extra thread context switch delay
+- Handled uniformly by async send thread
+- **Pros**: No data stability requirement, can modify after calling
+- **Cons**: Extra thread switching delay
 
 #### Mode 2: UART_ASYNC_SEND_MODE_DIRECT_FIRST
 - If TX resource is free, send directly in calling thread
-- If resource busy, fall back to Mode 1
-- **Advantage**: Reduce thread switch, lower latency
-- **Disadvantage**: Data must remain stable until transmission completes
-- **Note**: Not recommended in mutex mode (would block calling thread)
+- If resource is busy, fall back to mode 1
+- **Pros**: Reduces thread switching, lowers latency
+- **Cons**: Data must remain stable until send completes
+- **Note**: Not recommended with mutex mode (causes calling thread to block)
 
 ### 4.3 Resource Synchronization Modes
 
 #### Semaphore Mode (RESOURCE_SYN_MODE_SEMA)
 
 ```
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦TX Resource  ©¦  Initial: 1
-©¦ Semaphore   ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ©À©¤©¤¡ú Acquire Success ¡ú Send Data ¡ú Complete ¡ú Release Semaphore
-      ©¦
-      ©¸©¤©¤¡ú Acquire Fail ¡ú Block Wait
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ TX Resource â”‚  Initial Value: 1
+â”‚  Semaphore  â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â”œâ”€â”€â†’ Acquire Success â†’ Send Data â†’ Send Complete â†’ Release Semaphore
+      â”‚
+      â””â”€â”€â†’ Acquire Fail â†’ Block Wait
 ```
 
 **Features**:
 - Simple and efficient
-- May have priority inversion issue
-- Suitable for simple applications
+- Possible priority inversion issue
+- Suitable for simple application scenarios
 
 #### Mutex Mode (RESOURCE_SYN_MODE_MUTEX)
 
 ```
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´     ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦TX Resource  ©¦     ©¦  Sync Helper ©¦
-©¦   Mutex     ©¦     ©¦  Semaphore   ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼     ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦                     ©¦
-      ©À©¤©¤¡ú Acquire Mutex    ©¦
-      ©¦         ©¦           ©¦
-      ©¦         ©¸©¤©¤¡ú Release Helper ¡ú Wait Helper ¡ú Release Mutex
-      ©¦
-      ©¸©¤©¤¡ú Priority inheritance automatically solves priority inversion
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”     â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ TX Resource â”‚     â”‚  Sync Helper â”‚
+â”‚   Mutex     â”‚     â”‚  Semaphore   â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜     â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚                     â”‚
+      â”œâ”€â”€â†’ Acquire Mutex    â”‚
+      â”‚         â”‚           â”‚
+      â”‚         â””â”€â”€â†’ Release Helper Sema â†’ Wait Helper Sema â†’ Release Mutex
+      â”‚
+      â””â”€â”€â†’ Priority Inheritance mechanism automatically solves priority inversion
 ```
 
 **Features**:
-- Support priority inheritance
-- Solve priority inversion issues
-- Require additional sync semaphore
+- Supports priority inheritance
+- Solves priority inversion issues
+- Requires additional sync semaphore cooperation
 - Suitable for complex multi-priority systems
 
 ## 5. Data Flow Diagram
@@ -183,224 +182,226 @@ Call pf_send_asy() ¡ú Copy Data to Buffer ¡ú Return Immediately
 ### 5.1 Synchronous Send Flow
 
 ```
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦Call Thread ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ©¦ pf_send_syn(data, len, cpl_ctx)
-      ¨‹
-©³©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©·
-©§ Acquire TX   ©§ ?©¤©¤©¤ Semaphore/Mutex
-©§  Resource    ©§
-©»©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¿
-      ©¦
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦ Check TX Status ©¦
-©¦ check_tx_busy() ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦ Enqueue Completion©¦ ?©¤©¤©¤ tx_cpl_ctx_queue
-©¦    Context      ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ¨‹
-¨X¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨[
-¨U  Start DMA TX   ¨U
-¨Upf_uart_write_dma¨U
-¨^¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨a
-      ©¦
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦ Start Timeout   ©¦ (Optional)
-©¦     Timer       ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ©À©¤©¤©¤©¤ Semaphore Mode ©¤©¤¡ú Release second half (no-op)
-      ©¦
-      ©¸©¤©¤©¤©¤ Mutex Mode ©¤©¤¡ú Wait sync sema then release mutex
-      ©¦
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦   Return   ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚Calling Threadâ”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â”‚ pf_send_syn(data, len, cpl_ctx)
+      â–¼
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”“
+â”ƒ Acquire TX   â”ƒ â†â”€â”€â”€ Semaphore/Mutex
+â”ƒ  Resource    â”ƒ
+â”—â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”›
+      â”‚
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Check TX State  â”‚
+â”‚ check_tx_busy() â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Enqueue Completionâ”‚ â†â”€â”€â”€ tx_cpl_ctx_queue
+â”‚    Context      â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â–¼
+â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+â•‘ Start DMA       â•‘
+â•‘ pf_uart_write_dma()â•‘
+â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      â”‚
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Start Timeout   â”‚ (Optional)
+â”‚     Timer       â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â”œâ”€â”€â”€â”€ Semaphore Mode â”€â”€â†’ Release sync semaphore second half (no-op)
+      â”‚
+      â””â”€â”€â”€â”€ Mutex Mode â”€â”€â†’ Wait sync semaphore then release mutex
+      â”‚
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚   Return   â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
       ... Wait for DMA Complete ...
 
-¨X¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨[
-¨U DMA Complete IRQ¨U
-¨^¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨a
-      ©¦
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦ tx_cpl_isr_cb() ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ©À©¤©¤¡ú Stop timeout timer
-      ©¦
-      ©À©¤©¤¡ú Dequeue completion context
-      ©¦
-      ©À©¤©¤¡ú Execute ISR callback (if registered)
-      ©¦
-      ©À©¤©¤¡ú Enqueue thread callback (if registered)
-      ©¦
-      ©¸©¤©¤¡ú Release TX resource semaphore
+â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+â•‘ DMA Complete IRQâ•‘
+â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      â”‚
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ tx_cpl_isr_cb() â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â”œâ”€â”€â†’ Stop timeout timer
+      â”‚
+      â”œâ”€â”€â†’ Dequeue completion context
+      â”‚
+      â”œâ”€â”€â†’ Execute ISR callback (if registered)
+      â”‚
+      â”œâ”€â”€â†’ Enqueue thread callback (if registered)
+      â”‚
+      â””â”€â”€â†’ Release TX resource semaphore
 ```
 
 ### 5.2 Asynchronous Send Flow
 
 ```
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦Call Thread ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ©¦ pf_send_asy(data, len)
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦ Check Buffer    ©¦
-©¦     Space       ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ¨‹
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚Calling Threadâ”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â”‚ pf_send_asy(data, len)
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Check Buffer    â”‚
+â”‚     Space       â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â–¼
 #if DIRECT_FIRST && !MUTEX
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦Try Acquire      ©¦ (Non-blocking)
-©¦   Resource      ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ©À©¤©¤¡ú Success ¡ú Direct DMA Send ¡ú Return
-      ©¦
-      ©¸©¤©¤¡ú Fail ¡ý
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Try Acquire     â”‚ (Non-blocking)
+â”‚   Resource      â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â”œâ”€â”€â†’ Success â†’ Direct DMA Send â†’ Return
+      â”‚
+      â””â”€â”€â†’ Fail â†“
 #endif
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦ Copy Data to    ©¦
-©¦     Buffer      ©¦
-©¦write_offset+=len©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦Release Async    ©¦
-©¦Send Semaphore   ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦Return Now  ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Copy Data to    â”‚
+â”‚     Buffer      â”‚
+â”‚ write_offset += lenâ”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚Release Async Sendâ”‚
+â”‚   Semaphore     â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚Return Immediatelyâ”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
 ================================================
 
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦asy_send_thread  ©¦ ?©¤©¤©¤ Background Thread
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ©¦ Block wait async send semaphore
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦ Acquire TX      ©¦
-©¦   Resource      ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦ Read Data from  ©¦
-©¦     Buffer      ©¦
-©¦  read_offset    ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ¨‹
-¨X¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨[
-¨U  Start DMA TX   ¨U
-¨^¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨a
-      ©¦
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦Wait for Complete©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦Loop Wait Next   ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ asy_send_thread â”‚ â†â”€â”€â”€ Background Thread
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â”‚ Block wait async send semaphore
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Acquire TX      â”‚
+â”‚   Resource      â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Read Data from  â”‚
+â”‚     Buffer      â”‚
+â”‚ read_offset     â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â–¼
+â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+â•‘ Start DMA       â•‘
+â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      â”‚
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Wait for Send   â”‚
+â”‚   Complete      â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Loop Wait Next  â”‚
+â”‚      Send       â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ### 5.3 Completion Callback Flow
 
 ```
-¨X¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨[
-¨U DMA Complete IRQ¨U
-¨^¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨a
-      ©¦
-      ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦Dequeue Context  ©¦
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-      ©¦
-      ©À©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-      ©¦                  ©¦
-      ¨‹                  ¨‹
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´      ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦ISR       ©¦      ©¦Thread       ©¦
-©¦Callback  ©¦      ©¦Callback     ©¦
-©¦Execute   ©¦      ©¦Enqueued     ©¦
-©¦Now       ©¦      ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼            ©¦
-                        ¨‹
-                  ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-                  ©¦tx_cpl_thread©¦ ?©¤©¤©¤ Background Thread
-                  ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-                        ©¦
-                        ©¦ Dequeue
-                        ¨‹
-                  ©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-                  ©¦Execute User ©¦
-                  ©¦  Callback   ©¦
-                  ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
+â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+â•‘ DMA Complete IRQâ•‘
+â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      â”‚
+      â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Dequeue Context â”‚
+â”‚   from Queue    â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+      â”‚
+      â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+      â”‚                  â”‚
+      â–¼                  â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”      â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ISR Callbackâ”‚     â”‚Thread Callbackâ”‚
+â”‚Execute   â”‚      â”‚  Enqueue    â”‚
+â”‚Immediatelyâ”‚      â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜            â”‚
+                        â–¼
+                  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                  â”‚tx_cpl_threadâ”‚ â†â”€â”€â”€ Background Thread
+                  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                        â”‚
+                        â”‚ Dequeue
+                        â–¼
+                  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                  â”‚Execute User â”‚
+                  â”‚  Callback   â”‚
+                  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ## 6. Thread Model
 
 ```
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦Async Send Thread    ©¦  Priority: TX_ASY_THREAD_PRIORITY (15)
-©¦asy_send_thread()   ©¦  Stack: TX_ASY_THREAD_STACK_DEPTH (0x200)
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-        ©¦
-        ©¦ Wait asy_tx_sema
-        ¨‹
-    ©°©¤©¤©¤©¤©¤©¤©¤©¤©´
-    ©¦Acquire ©¦
-    ©¦Resource©¦
-    ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¼
-        ©¦
-        ¨‹
-    ©°©¤©¤©¤©¤©¤©¤©¤©¤©´
-    ©¦DMA Send©¦
-    ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Async Send Thread   â”‚  Priority: TX_ASY_THREAD_PRIORITY (15)
+â”‚ asy_send_thread()   â”‚  Stack Depth: TX_ASY_THREAD_STACK_DEPTH (0x200)
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+        â”‚
+        â”‚ Wait asy_tx_sema
+        â–¼
+    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”
+    â”‚Acquire â”‚
+    â”‚Resourceâ”‚
+    â””â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+        â”‚
+        â–¼
+    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”
+    â”‚DMA Sendâ”‚
+    â””â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
-©°©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©´
-©¦Completion Thread    ©¦  Priority: TX_CPL_THREAD_PRIORITY (14)
-©¦tx_cpl_thread()      ©¦  Stack: TX_CPL_THREAD_STACK_DEPTH (0x200)
-©¸©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¼
-        ©¦
-        ©¦ Wait thread_cpl_ctx_queue
-        ¨‹
-    ©°©¤©¤©¤©¤©¤©¤©¤©¤©´
-    ©¦Execute ©¦
-    ©¦Callback©¦
-    ©¸©¤©¤©¤©¤©¤©¤©¤©¤©¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Completion Thread   â”‚  Priority: TX_CPL_THREAD_PRIORITY (14)
+â”‚ tx_cpl_thread()     â”‚  Stack Depth: TX_CPL_THREAD_STACK_DEPTH (0x200)
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+        â”‚
+        â”‚ Wait thread_cpl_ctx_queue
+        â–¼
+    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”
+    â”‚Execute â”‚
+    â”‚Callbackâ”‚
+    â””â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
-**Thread Priority Recommendation**:
-- **Async Send Thread** > **Completion Thread** > **Application Threads**
-- Prevent async send from being blocked
-- Ensure transmission real-time performance
+**Thread Priority Recommendations**:
+- **Async Send Thread** > **Completion Callback Thread** > **Application Threads**
+- Prevents async send from being blocked
+- Ensures send real-time performance
 
-## 7. API Interfaces
+## 7. API Interface
 
 ### 7.1 Initialization Interface
 
@@ -417,7 +418,7 @@ uart_tx_status_t uart_tx_inst(
 2. Allocate private data
 3. Create async send thread
 4. Create completion callback thread (optional)
-5. Create sync resources (semaphore/mutex)
+5. Create synchronization resources (semaphore/mutex)
 6. Create timeout timer (optional)
 7. Register API function pointers
 
@@ -438,13 +439,13 @@ uart_tx_status_t pf_send_syn(
 - `uart_tx_cpl_ctx`: Completion callback context (can be NULL)
 
 **Return Values**:
-- `UART_TX_OK`: Send success
+- `UART_TX_OK`: Send successful
 - `UART_TX_ERR_PARAM_INVALID`: Invalid parameter
 - `UART_TX_ERR_HANDLER_NOT_READY`: Not initialized
 - `UART_TX_ERR_OTHERS`: Other errors
 
 **Data Stability**:
-- **Semaphore Mode**: Data must remain stable until transmission completes
+- **Semaphore Mode**: Data must remain stable until send completes
 - **Mutex Mode**: No requirement (function blocks internally)
 
 ### 7.3 Asynchronous Send Interface
@@ -463,10 +464,10 @@ uart_tx_status_t pf_send_asy(
 
 **Return Values**:
 - `UART_TX_OK`: Data enqueued
-- `UART_TX_ERR_BUFFER_NOT_SUFFICIENT`: Insufficient buffer space
+- `UART_TX_ERR_BUFFER_NOT_SUFFICIENT`: Buffer space insufficient
 
 **Data Stability**:
-- **THREAD_ONLY Mode**: No requirement (data copied)
+- **THREAD_ONLY Mode**: No requirement (data already copied)
 - **DIRECT_FIRST Mode**: Data must remain stable (may send directly)
 
 ### 7.4 State Reset Interface
@@ -475,11 +476,11 @@ uart_tx_status_t pf_send_asy(
 void reset_tx_state(uart_tx_handler_t *const self);
 ```
 
-**Function**: Reset transmission state
+**Function**: Reset send state
 **Usage Scenarios**:
 - Timeout recovery
 - Error handling
-- Manual clear of send flag
+- Manual send flag clearing
 
 ### 7.5 Completion Callback Interface
 
@@ -487,8 +488,8 @@ void reset_tx_state(uart_tx_handler_t *const self);
 void tx_cpl_isr_cb(uart_tx_handler_t *const self);
 ```
 
-**Function**: DMA transmission complete interrupt callback
-**Call Location**: UART DMA transfer complete interrupt service routine
+**Function**: DMA send complete interrupt callback
+**Invocation Location**: UART DMA transfer complete interrupt service routine
 
 ## 8. Error Handling
 
@@ -499,14 +500,14 @@ void tx_cpl_isr_cb(uart_tx_handler_t *const self);
 ```
 
 **Working Principle**:
-1. Start timer when DMA transmission starts
-2. Stop timer on normal completion
+1. Start timer when DMA send starts
+2. Stop timer when normally completes
 3. Call `timer_cb()` to reset state on timeout
 
-**Problems Prevented**:
-- DMA completion interrupt lost
-- Hardware failure causing stuck transmission
-- Software exception causing unreleased semaphore
+**Prevents Issues**:
+- Lost DMA complete interrupt
+- Hardware fault causing send hang
+- Software exception causing semaphore not released
 
 ### 8.2 Send Busy Detection
 
@@ -514,9 +515,9 @@ void tx_cpl_isr_cb(uart_tx_handler_t *const self);
 static inline bool check_tx_busy(uart_tx_handler_t *const self)
 ```
 
-**Function**: Detect and fix abnormal send state
+**Function**: Detect and fix abnormal send states
 **Scenarios**:
-- `is_sending` flag inconsistent with resource state
+- Inconsistency between `is_sending` flag and resource state
 - Interrupt handling exception
 - Multi-thread race condition
 
@@ -533,7 +534,7 @@ if (remain < length) {
 **Protection Mechanism**:
 - Check remaining space before async send
 - Atomic check and update in critical section
-- Prevent overwriting unsent data
+- Prevents overwriting unsent data
 
 ## 9. Configuration Options
 
@@ -549,7 +550,7 @@ if (remain < length) {
 // Resource sync mode
 #define RESOURCE_SYN_MODE_DEFAULT         RESOURCE_SYN_MODE_MUTEX
 
-// Timeout protection (0 = disable)
+// Timeout protection (0 = disabled)
 #define UART_TX_RESOURCE_TIMEOUT_TICK     1000
 
 // Thread configuration
@@ -568,7 +569,7 @@ if (remain < length) {
 
 ### 9.2 Runtime Configuration
 
-#### Thread Attribute Configuration
+#### Thread Attributes Configuration
 ```c
 tx_thread_attr_t thread_att = {
     .tx_asy_thread_att = {
@@ -599,7 +600,7 @@ uart_tx_cfg_t cfg = {
 - Completion callback: Not needed
 
 ```c
-// Periodic sensor data transmission
+// Periodic sensor data send
 void sensor_task(void *arg) {
     uint8_t data[64];
     while (1) {
@@ -618,7 +619,7 @@ void sensor_task(void *arg) {
 - Completion callback: Thread callback
 
 ```c
-// Send command response with confirmation
+// Send command response and confirm
 void send_response(uint8_t *resp, uint16_t len) {
     uart_tx_cpl_ctx_t cpl_ctx = {
         .thread_ctx = {
@@ -656,14 +657,14 @@ void log_output(const char *msg) {
 ### 11.1 Problem Description
 
 ```
-High Priority Task (H) ©¤©¤©´
-                         ©¦ Wait for TX Resource
-                         ¨‹
-Medium Priority Task (M) ©¤©¤©¤©¤¡ú Preempt ©¤©¤©¤©¤¡ú Low Priority Task Delayed
-                                           ©¦
-Low Priority Task (L) ©¤©¤©¤¡ú Hold TX Resource ©¤©¤©¼
+High Priority Task (H) â”€â”€â”
+                         â”‚ Wait TX Resource
+                         â–¼
+Mid Priority Task (M) â”€â”€â”€â”€â†’ Preempt â”€â”€â”€â”€â†’ Low Priority Task Execution Delayed
+                                      â”‚
+Low Priority Task (L) â”€â”€â”€â†’ Hold TX Resource â”€â”€â”˜
 
-Result: High priority task indirectly blocked by medium priority task
+Result: High priority task indirectly blocked by mid priority task
 ```
 
 ### 11.2 Solutions
@@ -676,19 +677,19 @@ Result: High priority task indirectly blocked by medium priority task
 
 **Principle**:
 - Mutex supports priority inheritance
-- Low priority task temporarily promoted when holding resource
-- Avoid preemption by medium priority tasks
+- Low priority task temporarily promoted to high priority when holding resource
+- Avoids being preempted by mid priority task
 
 #### Solution 2: Adjust Priority Design
 
 ```
-Async send thread priority > All application threads
+Async Send Thread Priority > All Application Threads
 ```
 
 **Principle**:
 - Async send thread quickly releases resource
-- Reduce resource holding time
-- Lower priority inversion risk
+- Reduces resource hold time
+- Lowers priority inversion risk
 
 #### Solution 3: Test Point Injection
 
@@ -702,12 +703,12 @@ void priority_inversion_test_func(void) {
 
 ## 12. Performance Optimization
 
-### 12.1 Reduce Thread Context Switches
+### 12.1 Reduce Thread Switching
 
 **Optimization Strategy**:
 - Use `UART_ASYNC_SEND_MODE_DIRECT_FIRST`
-- Send directly in calling thread when resource free
-- Avoid unnecessary thread wakeups
+- Send directly in calling thread when resource is free
+- Avoid unnecessary thread wakeup
 
 **Applicable Scenarios**:
 - Low send frequency
@@ -718,21 +719,21 @@ void priority_inversion_test_func(void) {
 
 **Principle**:
 ```
-Buffer Size >= Max Single Send Size ¡Á 2
+Buffer Size >= Maximum Single Send Ã— 2
 ```
 
 **Considerations**:
 - Send frequency
 - Single send data size
-- Transmission time
+- Send duration
 - System real-time requirements
 
 ### 12.3 Callback Execution Optimization
 
 **ISR Callback**:
 - Keep as short as possible
-- Do not call blocking functions
-- Do not execute time-consuming operations
+- Don't call blocking functions
+- Don't execute time-consuming operations
 
 **Thread Callback**:
 - Can execute complex logic
@@ -743,9 +744,9 @@ Buffer Size >= Max Single Send Size ¡Á 2
 
 ```
 uart_send.c/h
-    ©À©¤©¤ os_interface    (Thread, semaphore, mutex, queue, timer)
-    ©À©¤©¤ tx_uart_ops     (HW init, DMA write)
-    ©¸©¤©¤ send_buf_att    (Send buffer)
+    â”œâ”€â”€ os_interface          (Thread, semaphore, mutex, queue, timer)
+    â”œâ”€â”€ tx_uart_ops           (Hardware init, DMA write)
+    â””â”€â”€ send_buf_att          (Send buffer)
 ```
 
 ## 14. Porting Guide
@@ -756,7 +757,7 @@ uart_send.c/h
    - Thread create/delete
    - Semaphore create/acquire/release
    - Mutex create/acquire/release (mutex mode)
-   - Queue create/put/get
+   - Queue create/send/receive
    - Critical section enter/exit
    - Timer create/start/stop (timeout mode)
 
@@ -766,10 +767,10 @@ uart_send.c/h
 
 ### 14.2 Porting Steps
 
-1. Implement `uart_tx_os_interface_t` interface according to RTOS type
+1. Implement `uart_tx_os_interface_t` interface based on RTOS type
 2. Implement `tx_uart_ops_t` UART hardware interface
-3. Configure operation modes (sync mode, async mode, resource sync mode)
-4. Call `tx_cpl_isr_cb()` in DMA transmission complete interrupt
+3. Configure operating modes (sync mode, async mode, resource sync mode)
+4. Call `tx_cpl_isr_cb()` in DMA send complete interrupt
 5. Initialize send layer instance and register to system
 
 ### 14.3 FreeRTOS Porting Example
@@ -810,9 +811,9 @@ tx_uart_ops_t uart_ops = {
 
 ### 15.2 Common Issue Troubleshooting
 
-| Issue | Possible Cause | Investigation Method |
-|-------|---------------|---------------------|
-| Send stuck | Interrupt not triggered | Check interrupt config, enable timeout protection |
+| Issue | Possible Cause | Troubleshooting Method |
+|-------|---------------|----------------------|
+| Send hangs | Interrupt not triggered | Check interrupt config, enable timeout protection |
 | Data loss | Buffer overflow | Increase buffer size, check send frequency |
 | Priority inversion | Using semaphore | Switch to mutex mode |
 | High send latency | Low thread priority | Adjust async send thread priority |
